@@ -19,7 +19,8 @@ module AadhaarAuth
     end
 
     def valid?
-      if aadhaar_no.size != 12
+      # should be exactly 12 digits
+      if aadhaar_no !~ /^\d{12}$/
         return(false)
       end
 
