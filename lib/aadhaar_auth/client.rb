@@ -20,17 +20,21 @@ module AadhaarAuth
 
     def valid?
       url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{adhaar_no[0]}/#{adhaar_no[1]}/#{Config.asa_licence_key}"
-      puts "URL: \n#{url}" if verbose
       signed_req = signed_xml
-      puts "Signed request: \n#{signed_req}" if verbose
       res = Curl::Easy.http_post(url, signed_req).body_str
-      puts "Response: \n#{res}" if verbose
+
+      if verbose
+        puts "URL: \n#{url}"
+        puts "PID XML: \n#{pid_block()}"
+        puts "Signed request: \n#{signed_req}"
+        puts "Response: \n#{res}"
+      end
+
       digital_signer.verify_signature(res)
       res
     end
 
     def signed_xml
-      puts "Raw request: \n#{req_xml}" if verbose
       @signed_xml ||= digital_signer.sign(req_xml)
     end
 
