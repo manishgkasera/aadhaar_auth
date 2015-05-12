@@ -10,6 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["manishgkasera@gmail.com"]
   spec.summary       = %q{Aadhaar auth api: ruby port}
   spec.description   = %q{Aadhaar auth api v1.6: ruby port}
+  spec.homepage = 'https://github.com/manishgkasera/aadhaar_auth'
 
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }

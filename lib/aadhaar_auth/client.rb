@@ -23,7 +23,6 @@ module AadhaarAuth
         return(false)
       end
 
-      url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{aadhaar_no[0]}/#{aadhaar_no[1]}/#{Config.asa_licence_key}"
       signed_req = signed_xml
       res = Curl::Easy.http_post(url, signed_req).body_str
 
@@ -46,6 +45,10 @@ module AadhaarAuth
         end
         raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, signed_xml, res].join("\n\n"))
       end
+    end
+
+    def url
+      @url ||= url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{aadhaar_no[0]}/#{aadhaar_no[1]}/#{Config.asa_licence_key}"
     end
 
     def signed_xml
