@@ -11,7 +11,7 @@ module AadhaarAuth
       return if !Config.verify_response_signature
 
       if !Xmldsig::SignedDocument.new(xml).validate(Encrypter.public_cert)
-        raise "Invalid response signature"
+        raise InvalidSignature.new("Invalid response signature")
       end
     end
 
@@ -32,5 +32,7 @@ module AadhaarAuth
         @private_key_cert_val ||= private_key_cert.to_s.sub(/^-----BEGIN CERTIFICATE-----\n/, '').sub(/-----END CERTIFICATE-----\n$/, '')
       end
     end
+
+    class InvalidSignature < Exception; end
   end
 end

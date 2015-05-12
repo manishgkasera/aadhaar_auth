@@ -5,10 +5,10 @@ require 'aadhaar_auth/digital_signer'
 module AadhaarAuth
   class Client
     attr_accessor :verbose
-    attr_reader :adhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer
+    attr_reader :aadhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer
 
     def initialize(person_data)
-      @adhaar_no = person_data[:aadhaar_no]
+      @aadhaar_no = person_data[:aadhaar_no].to_s
       @name = person_data[:name]
       @email = person_data[:email]
       @phone = person_data[:phone]
@@ -19,7 +19,11 @@ module AadhaarAuth
     end
 
     def valid?
-      url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{adhaar_no[0]}/#{adhaar_no[1]}/#{Config.asa_licence_key}"
+      if aadhaar_no.size != 12
+        return(false)
+      end
+
+      url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{aadhaar_no[0]}/#{aadhaar_no[1]}/#{Config.asa_licence_key}"
       signed_req = signed_xml
       res = Curl::Easy.http_post(url, signed_req).body_str
 
@@ -31,7 +35,17 @@ module AadhaarAuth
       end
 
       digital_signer.verify_signature(res)
-      res
+      auth_res = Nokogiri::XML(res).children.find{|c| c.name == 'AuthRes'}
+      if auth_res.attributes['err'].nil?
+        auth_res.attributes['code'].value != 'NA' &&
+        auth_res.attributes['ret'].value == 'y'
+      else
+        if auth_res.attributes['err'].value == '998'
+          # invalid aadhaar number
+          return(false)
+        end
+        raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, signed_xml, res].join("\n\n"))
+      end
     end
 
     def signed_xml
@@ -41,7 +55,7 @@ module AadhaarAuth
     def req_xml
       nok = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |x|
         x.Auth(
-                'uid' => adhaar_no,
+                'uid' => aadhaar_no,
                 'ac' => Config.ac,
                 'lk' => Config.lk,
                 'sa'=> Config.sa,
@@ -111,5 +125,7 @@ module AadhaarAuth
     def skey_ci
       encrypter.public_cert.not_after.strftime('%Y%m%d')
     end
+
+    class ResponseError < Exception; end
   end
 end
