@@ -4,6 +4,7 @@ require 'aadhaar_auth/digital_signer'
 
 module AadhaarAuth
   class Client
+    attr_accessor :verbose
     attr_reader :adhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer
 
     def initialize(person_data)
@@ -19,15 +20,17 @@ module AadhaarAuth
 
     def valid?
       url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{adhaar_no[0]}/#{adhaar_no[1]}/#{Config.asa_licence_key}"
-      res = Curl::Easy.http_post(url, signed_xml).body_str
-      if digital_signer.valid_signature?(res)
-        res
-      else
-        raise "Invalid response signature"
-      end
+      puts "URL: \n#{url}" if verbose
+      signed_req = signed_xml
+      puts "Signed request: \n#{signed_req}" if verbose
+      res = Curl::Easy.http_post(url, signed_req).body_str
+      puts "Response: \n#{res}" if verbose
+      digital_signer.verify_signature(res)
+      res
     end
 
     def signed_xml
+      puts "Raw request: \n#{req_xml}" if verbose
       @signed_xml ||= digital_signer.sign(req_xml)
     end
 
