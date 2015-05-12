@@ -6,7 +6,8 @@ module AadhaarAuth
                     :public_certificate_path,
                     :digital_signature_path,
                     :digital_signature_pwd,
-                    :ac, :lk, :sa, :tid, :udc
+                    :ac, :lk, :sa, :tid, :udc,
+                    :verify_response_signature
 
 
     end
@@ -20,6 +21,8 @@ module AadhaarAuth
 
     Config.digital_signature_path = File.join(keys_path, 'public-may2012.p12')
     Config.digital_signature_pwd = 'public'
+
+    Config.verify_response_signature = true
 
     Config.ac = 'public'
     Config.sa = 'public'
