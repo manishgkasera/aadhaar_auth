@@ -40,9 +40,8 @@ module AadhaarAuth
         auth_res.attributes['code'].value != 'NA' &&
         auth_res.attributes['ret'].value == 'y'
       else
-        if auth_res.attributes['err'].value == '998'
-          # invalid aadhaar number
-          return(false)
+        if ['998', '100', '200'].include?(auth_res.attributes['err'].value)
+          return false
         end
         raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, signed_xml, res].join("\n\n"))
       end
