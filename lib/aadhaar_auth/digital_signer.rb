@@ -8,8 +8,6 @@ module AadhaarAuth
     end
 
     def verify_signature(xml)
-      return if !Config.verify_response_signature
-
       if !Xmldsig::SignedDocument.new(xml).validate(Encrypter.public_cert)
         raise InvalidSignature.new("Invalid response signature")
       end

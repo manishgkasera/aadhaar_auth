@@ -5,7 +5,8 @@ require 'aadhaar_auth/digital_signer'
 module AadhaarAuth
   class Client
     attr_accessor :verbose
-    attr_reader :aadhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer, :raw_response
+    attr_reader :aadhaar_no, :name, :email, :phone, :gender, :time,
+             :encrypter, :digital_signer, :raw_response, :error_code
 
     def initialize(person_data)
       @aadhaar_no = person_data[:aadhaar_no].to_s
@@ -34,17 +35,17 @@ module AadhaarAuth
         puts "Response: \n#{@raw_response}"
       end
 
-      digital_signer.verify_signature(@raw_response)
+      digital_signer.verify_signature(@raw_response) if Config.verify_response_signature
+
       auth_res = Nokogiri::XML(@raw_response).children.find{|c| c.name == 'AuthRes'}
-      if auth_res.attributes['err'].nil?
-        auth_res.attributes['code'].value != 'NA' &&
-        auth_res.attributes['ret'].value == 'y'
-      else
-        if ['998', '100', '200'].include?(auth_res.attributes['err'].value)
-          return false
-        end
-        raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, raw_request, @raw_response].join("\n\n"))
+      @error_code = auth_res.attributes['err'] ? auth_res.attributes['err'].value : nil
+
+      ret = auth_res.attributes['ret'] ? auth_res.attributes['ret'].value : nil
+      if ret && ret != ''
+        return ret == 'y'
       end
+
+      raise ResponseError.new(["Error :#{@error_code}", pid_block, raw_request, @raw_response].join("\n\n"))
     end
 
     def url
