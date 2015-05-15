@@ -5,7 +5,7 @@ require 'aadhaar_auth/digital_signer'
 module AadhaarAuth
   class Client
     attr_accessor :verbose
-    attr_reader :aadhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer
+    attr_reader :aadhaar_no, :name, :email, :phone, :gender, :time, :encrypter, :digital_signer, :raw_response
 
     def initialize(person_data)
       @aadhaar_no = person_data[:aadhaar_no].to_s
@@ -16,6 +16,7 @@ module AadhaarAuth
       @time = Time.now
       @encrypter = Encrypter.new
       @digital_signer = DigitalSigner.new
+      @raw_response = nil
     end
 
     def valid?
@@ -24,18 +25,17 @@ module AadhaarAuth
         return(false)
       end
 
-      signed_req = signed_xml
-      res = Curl::Easy.http_post(url, signed_req).body_str
+      @raw_response = Curl::Easy.http_post(url, raw_request).body_str
 
       if verbose
         puts "URL: \n#{url}"
         puts "PID XML: \n#{pid_block()}"
-        puts "Signed request: \n#{signed_req}"
-        puts "Response: \n#{res}"
+        puts "Signed request: \n#{raw_request}"
+        puts "Response: \n#{@raw_response}"
       end
 
-      digital_signer.verify_signature(res)
-      auth_res = Nokogiri::XML(res).children.find{|c| c.name == 'AuthRes'}
+      digital_signer.verify_signature(@raw_response)
+      auth_res = Nokogiri::XML(@raw_response).children.find{|c| c.name == 'AuthRes'}
       if auth_res.attributes['err'].nil?
         auth_res.attributes['code'].value != 'NA' &&
         auth_res.attributes['ret'].value == 'y'
@@ -43,7 +43,7 @@ module AadhaarAuth
         if ['998', '100', '200'].include?(auth_res.attributes['err'].value)
           return false
         end
-        raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, signed_xml, res].join("\n\n"))
+        raise ResponseError.new(["Error :#{auth_res.attributes['err'].value}", pid_block, raw_request, @raw_response].join("\n\n"))
       end
     end
 
@@ -51,8 +51,8 @@ module AadhaarAuth
       @url ||= url = "http://auth.uidai.gov.in/#{Config.api_version}/public/#{aadhaar_no[0]}/#{aadhaar_no[1]}/#{Config.asa_licence_key}"
     end
 
-    def signed_xml
-      @signed_xml ||= digital_signer.sign(req_xml)
+    def raw_request
+      @raw_request ||= digital_signer.sign(req_xml)
     end
 
     def req_xml
